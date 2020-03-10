@@ -1,0 +1,80 @@
+/* 
+ * Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT license.
+ * See LICENSE in the project root for license information.
+ */
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/** ルートdiv要素 */
+#container {
+    position: relative;
+}
+
+/** 初期化中表示レイヤー */
+.ex-sp__progress-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: rgba(255, 255, 255, 0.6);
+}
+
+/** 初期化中表示 */
+.ex-sp__progress {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+}
+
+/** セクションタイトル */
+.ex-sp__section-title {
+    padding-left: 10px;
+}
+
+/** セクション本文 */
+.ex-sp__section-body {
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-bottom: 10px;
+}
+
+/** セクション行のマージン */
+.ex-sp__section-item {
+    margin-top: 20px;
+}
+
+/** セクション内容のマージン */
+.ex-sp__section-column {
+    margin-left: 20px;
+}
+
+/** アニメーション実行 */
+.ex-sp__animation-pulse {
+    animation-duration: 0.5s;
+    animation-name: pulse;
+}
+
+/** アニメーション定義 */
+@keyframes pulse {
+    0% {
+        transform: scale3d(1, 1, 1);
+    }
+    50%	{
+        transform: scale3d(1.025, 1.025, 1.025);
+    }
+    100% {
+        transform: scale3d(1, 1, 1);
+    }
+}
