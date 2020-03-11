@@ -11,12 +11,9 @@ import { IComboBoxOption } from "office-ui-fabric-react";
 import "@pnp/polyfill-ie11";
 import { sp } from "@pnp/sp";
 import { stringIsNullOrEmpty } from "@pnp/common";
-/* global console, Excel */
 
 /** プロパティ型定義 */
 export interface ExcelImporterProps {
-    /** アドインURL */
-    addinUrl: string;
     /** Officeが初期化済か否か */
     isOfficeInitialized: boolean;
 }
@@ -205,7 +202,7 @@ export default class ExcelImporter extends React.Component<ExcelImporterProps, E
 
     /** レンダリング */
     public render() {
-        const { isOfficeInitialized, addinUrl } = this.props;
+        const { isOfficeInitialized } = this.props;
         const { selectedWebUrl, selectedSourceFields, selectedTargetFields, selectedSource, selectedTarget, maps, isAppInitialized, isAuthorized, account, token, domain, err } = this.state;
 
         return (
@@ -220,7 +217,7 @@ export default class ExcelImporter extends React.Component<ExcelImporterProps, E
                             <div>{err ? err.toString() : undefined}</div>
                             <Progress visible={(!isOfficeInitialized || !isAppInitialized)} />
                         </React.Fragment> :
-                        <Auth addinUrl={addinUrl} authCallBack={this.handleAuthorized} logOutCallBack={this.handleSignOut} />
+                        <Auth authCallBack={this.handleAuthorized} logOutCallBack={this.handleSignOut} />
                 }
             </React.Fragment>
         );

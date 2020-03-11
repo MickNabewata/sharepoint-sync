@@ -5,7 +5,7 @@ import "@pnp/polyfill-ie11";
 import { sp } from '@pnp/sp';
 import { msalInstance } from "../pnp/MSal";
 import { Spinner, SpinnerType } from "office-ui-fabric-react";
-import QueryUtil from "../util/queryUtil";
+import UrlParameter from "../util/urlParameter";
 import { stringIsNullOrEmpty } from "@pnp/common";
 
 /** ログインページプロパティ */
@@ -55,7 +55,7 @@ export default class MsalRedirect extends React.Component<MsalRedirectProps, Msa
   /** URLパラメータからドメインを取得 */
   private getDomain() {
     let ret = '';
-    const params = new QueryUtil().get().params;
+    const params = new UrlParameter().get().params;
     if (params && !stringIsNullOrEmpty(params.domain)) {
       ret = params.domain;
     }

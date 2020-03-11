@@ -11,6 +11,8 @@ This repository contains the source code used by the [Yo Office generator](https
 - リストが無ければ作る
 - テーブルが無ければ作る
 
+- .env.sample を参考に .env.development と .env.production を作ること
+
 ## TypeScript
 
 This template is written using [TypeScript](http://www.typescriptlang.org/). For the JavaScript version of this template, go to [Office-Addin-TaskPane-React-JS](https://github.com/OfficeDev/Office-Addin-TaskPane-React-JS).

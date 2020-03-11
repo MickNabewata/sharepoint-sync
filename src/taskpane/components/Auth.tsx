@@ -4,11 +4,10 @@ import { Text, PrimaryButton, TextField } from "office-ui-fabric-react";
 import { DialogMessage } from "./MsalRedirect";
 import { Account } from "msal";
 import { stringIsNullOrEmpty } from "@pnp/common";
+import Config from "../util/config";
 
 /** 認証プロパティ */
 export interface AuthProps {
-  /** アドインURL */
-  addinUrl: string;
   /** 認証成功コールバック */
   authCallBack: (account: Account, token: string, domain: string) => void;
   /** ログアウトコールバック */
@@ -59,9 +58,8 @@ export default class Auth extends React.Component<AuthProps, AuthStates> {
   /** ログインボタンクリックイベント */
   private handleLoginButtonClicked = () => {
     const { domain } = this.state;
-    const { addinUrl } = this.props;
 
-    Office.context.ui.displayDialogAsync(`${addinUrl}/taskpane.html?domain=${domain}#/login`, {}, result => {
+    Office.context.ui.displayDialogAsync(`${Config.HOST}/taskpane.html?domain=${domain}#/login`, {}, result => {
       const dialog = result.value;
       dialog.addEventHandler(Office.EventType.DialogMessageReceived, this.authCallback(dialog));
     });

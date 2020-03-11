@@ -6,8 +6,6 @@ import Test from "./Test";
 
 /** アプリケーションルート プロパティ */
 export interface AppProps {
-  /** アドインURL */
-  addinUrl: string;
   /** Officeが初期化済か否か */
   isOfficeInitialized: boolean;
 }
@@ -26,12 +24,12 @@ export default class App extends React.Component<AppProps, AppStates> {
   }
 
   render() {
-    const { isOfficeInitialized, addinUrl } = this.props;
+    const { isOfficeInitialized } = this.props;
     return (
       <Router>
         <Switch>
           <Route exact path="/login" component={() => { return <MsalRedirect />; }} />
-          <Route exact path="/" component={() => { return <ExcelImporter addinUrl={addinUrl} isOfficeInitialized={isOfficeInitialized} />; }} />
+          <Route exact path="/" component={() => { return <ExcelImporter isOfficeInitialized={isOfficeInitialized} />; }} />
           <Route exact path="/test" component={() => { return <Test />; }} />
         </Switch>
       </Router>
