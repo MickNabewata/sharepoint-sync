@@ -5,6 +5,7 @@ import { DialogMessage } from "./MsalRedirect";
 import { Account } from "msal";
 import { stringIsNullOrEmpty } from "@pnp/common";
 import Config from "../util/config";
+import { GetLocale } from "../locale/Locale";
 
 /** 認証プロパティ */
 export interface AuthProps {
@@ -25,10 +26,12 @@ export interface AuthStates {
 /** 認証 */
 export default class Auth extends React.Component<AuthProps, AuthStates> {
 
+  locale = GetLocale();
+
   /** 認証  */
   constructor(props, context) {
       super(props, context);
-    this.state = {
+      this.state = {
         domain: '',
         errorMessage: ''
       };

@@ -23,6 +23,7 @@ export default class App extends React.Component<AppProps, AppStates> {
       };
   }
 
+  /** レンダリング */
   render() {
     const { isOfficeInitialized } = this.props;
     return (

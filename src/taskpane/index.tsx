@@ -5,10 +5,12 @@ import { initializeIcons } from "office-ui-fabric-react/lib/Icons";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
+// アイコン初期化
 initializeIcons();
 
 let isOfficeInitialized = false;
 
+/** レンダリング処理定義 */
 const render = Component => {
   ReactDOM.render(
     <AppContainer>
@@ -18,13 +20,13 @@ const render = Component => {
   );
 };
 
-/* Render application after Office initializes */
+/* Officeが初期化された後のイベントでrender */
 Office.initialize = () => {
   isOfficeInitialized = true;
   render(App);
 };
 
-/* Initial render showing a progress bar */
+/* 初回render　この時点ではSpinnerだけ表示される */
 render(App);
 
 if ((module as any).hot) {
