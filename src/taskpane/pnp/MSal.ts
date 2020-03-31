@@ -4,8 +4,8 @@ import Config from "../util/config";
 
 /** MSAL認証用 */
 const msalConfig: AuthOptions = {
-  authority: "https://login.microsoftonline.com/9e129fc5-a933-4f8f-a17b-f71057e7d820",
-  clientId: "f8208612-c057-4d8e-b987-348ed1d45bc9",
+  authority: "https://login.microsoftonline.com/organizations",
+  clientId: Config.CLIENT_ID,
   redirectUri: `${Config.HOST}/taskpane.html#/login`
 };
 

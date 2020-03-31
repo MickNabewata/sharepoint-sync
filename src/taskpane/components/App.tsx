@@ -1,7 +1,8 @@
 import * as React from "react";
+import ComponentBase from "./bases/ComponentBase";
 import { HashRouter as Router, Switch, Route } from "react-router-dom";
-import ExcelImporter from "./ExcelImporter";
-import MsalRedirect from "./MsalRedirect";
+import SharePointSync from "./SharePointSync";
+import MsalRedirect from "./auth/MsalRedirect";
 import Test from "./Test";
 
 /** アプリケーションルート プロパティ */
@@ -14,7 +15,7 @@ export interface AppProps {
 export interface AppStates {}
 
 /** アプリケーションルート  */
-export default class App extends React.Component<AppProps, AppStates> {
+export default class App extends ComponentBase<AppProps, AppStates> {
 
   /** アプリケーションルート  */
   constructor(props, context) {
@@ -30,7 +31,7 @@ export default class App extends React.Component<AppProps, AppStates> {
       <Router>
         <Switch>
           <Route exact path="/login" component={() => { return <MsalRedirect />; }} />
-          <Route exact path="/" component={() => { return <ExcelImporter isOfficeInitialized={isOfficeInitialized} />; }} />
+          <Route exact path="/" component={() => { return <SharePointSync isOfficeInitialized={isOfficeInitialized} />; }} />
           <Route exact path="/test" component={() => { return <Test />; }} />
         </Switch>
       </Router>

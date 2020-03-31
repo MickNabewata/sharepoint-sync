@@ -1,4 +1,5 @@
 import * as React from "react";
+import ComponentBase from "./bases/ComponentBase";
 import { toDate } from "../excel/typeConverter";
 
 /** テスト プロパティ */
@@ -9,7 +10,7 @@ export interface TestProps {
 export interface TestStates {}
 
 /** テスト  */
-export default class App extends React.Component<TestProps, TestStates> {
+export default class App extends ComponentBase<TestProps, TestStates> {
 
   /** テスト  */
   constructor(props, context) {
