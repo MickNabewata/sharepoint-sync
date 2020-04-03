@@ -3,7 +3,7 @@ import { AuthError, Account } from "msal";
 import { PnPFetchClient } from "../../pnp/PnPFetchClient";
 import "@pnp/polyfill-ie11";
 import { sp } from '@pnp/sp';
-import { msalInstance } from "../../pnp/MSal";
+import { msalInstance } from "../../pnp/mSalInstance";
 import { Spinner, SpinnerType } from "office-ui-fabric-react";
 import ComponentBase from "../bases/ComponentBase";
 

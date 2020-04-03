@@ -3,6 +3,7 @@ import ComponentBase from "../bases/ComponentBase";
 import { IComboBoxOption, IComboBox, Text } from "office-ui-fabric-react";
 import Section from "../parts/Section";
 import FullWidthComboBox from "../parts/FullWidthComboBox";
+import Err from "../parts/Error";
 
 /** マッピング */
 export interface Map {
@@ -29,7 +30,7 @@ export interface MapSectionState {
     /** コンポーネントが初期化済か否か */
     isComponentInitialized: boolean;
     /** エラーメッセージ */
-    errorMessage: string;
+    err: any;
 }
 
 /** マッピングセクション コンポーネント */
@@ -40,7 +41,7 @@ export default class MapSection extends ComponentBase<MapSectionProps, MapSectio
         super(props, context);
         this.state = {
             isComponentInitialized: false,
-            errorMessage: ""
+            err: ""
         };
     }
 
@@ -66,7 +67,7 @@ export default class MapSection extends ComponentBase<MapSectionProps, MapSectio
 
     /** レンダリング */
     public render() {
-        const { isComponentInitialized, errorMessage } = this.state;
+        const { isComponentInitialized, err } = this.state;
         const { excelFields, spoFields } = this.props;
 
         return (
@@ -89,9 +90,7 @@ export default class MapSection extends ComponentBase<MapSectionProps, MapSectio
                         })
                     }
                 </div>
-                <div className="ex-sp__section-item">
-                    <Text>{errorMessage}</Text>
-                </div>
+                <Err err={err} />
             </Section>
         );
     }

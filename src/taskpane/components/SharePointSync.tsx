@@ -7,7 +7,7 @@ import MapSection, { Map } from "./sections/MapSection";
 import ExecuteSection, { ExecuteStatus } from "./sections/ExecuteSection";
 import Auth from "./auth/Auth";
 import { Account } from "msal";
-import { msalInstance } from "../pnp/mSal";
+import { msalInstance } from "../pnp/mSalInstance";
 import { IComboBoxOption } from "office-ui-fabric-react";
 import "@pnp/polyfill-ie11";
 import { sp } from "@pnp/sp";

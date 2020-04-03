@@ -76,3 +76,52 @@ export function toDate(str: string): Date {
 export function toBool(str: string): boolean {
     return str ? str.toLowerCase() === "true" : false;
 }
+
+/** エラーオブジェクトからメッセージを取得 */
+export function errToString(err: any): string {
+    if (!err) return "";
+
+    try {
+        let msg = "";
+
+        if (err.response) {
+            const internalError = err.response._bodyText ?
+                JSON.parse(err.response._bodyText) :
+                err.description ?
+                    err.description.includes("odata.error") ?
+                        JSON.parse(err.description.substr(err.description.indexOf("{"))) :
+                        JSON.parse(err.description) :
+                    err;
+
+            msg = internalError ?
+                internalError["odata.error"] ?
+                    internalError["odata.error"].message ?
+                        internalError["odata.error"].message.value ?
+                            internalError["odata.error"].message.value :
+                            JSON.stringify(internalError["odata.error"].message) :
+                        JSON.stringify(internalError["odata.error"]) :
+                    JSON.stringify(internalError) :
+                JSON.stringify(err);
+        }
+        else if (err["odata.error"]) {
+            msg = err["odata.error"] ?
+                err["odata.error"].message ?
+                    err["odata.error"].message.value ?
+                        err["odata.error"].message.value :
+                        JSON.stringify(err["odata.error"].message) :
+                    JSON.stringify(err["odata.error"]) :
+                JSON.stringify(err);
+        }
+        else {
+            msg = err.description ?
+                err.description :
+                err.error_description ?
+                    err.error_description :
+                    JSON.stringify(err);
+        }
+
+        return msg;
+    } catch (ex) {
+        return err;
+    }
+}

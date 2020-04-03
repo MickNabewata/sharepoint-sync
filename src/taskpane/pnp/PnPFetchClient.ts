@@ -25,7 +25,7 @@ export class PnPFetchClient extends BearerTokenFetchClient {
       };
 
       if (resource.indexOf('sharepoint') !== -1) {
-        request.scopes = [`${resource}/AllSites.FullControl`];
+        request.scopes = [`${resource}/AllSites.Write`];
       }
 
       try {

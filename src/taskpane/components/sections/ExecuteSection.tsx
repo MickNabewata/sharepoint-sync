@@ -1,15 +1,16 @@
 import * as React from "react";
 import ComponentBase from "../bases/ComponentBase";
-import { PrimaryButton, Text } from "office-ui-fabric-react";
+import { PrimaryButton } from "office-ui-fabric-react";
 import Section from "../parts/Section";
 import { Map } from "./MapSection";
 import "@pnp/polyfill-ie11";
 import { sp, ListItemFormUpdateValue } from "@pnp/sp";
-import { stringIsNullOrEmpty, isArray } from "@pnp/common";
+import { stringIsNullOrEmpty } from "@pnp/common";
 import { SpoFieldType, toSpoType } from "../../pnp/typeConverter";
 import { isNumber, toNumber, toDate as toDate2, toString } from "../../util/typeCheck";
 import { toDate } from "../../excel/typeConverter";
 import { initPnPJs } from "../../pnp/pnp";
+import Err from "../parts/Error";
 
 /** 実行ステータス */
 export type ExecuteStatus = "processing" | "completed";
@@ -54,7 +55,7 @@ interface SpoField {
 /** ステート型定義 */
 export interface ExecuteSectionState {
     /** エラーメッセージ */
-    errorMessage: any;
+    err: any;
 }
 
 /** 実行セクション コンポーネント */
@@ -64,7 +65,7 @@ export default class ExecuteSection extends ComponentBase<ExecuteSectionProps, E
     constructor(props: ExecuteSectionProps, context) {
         super(props, context);
         this.state = {
-            errorMessage: ""
+            err: ""
         };
     }
 
@@ -91,7 +92,7 @@ export default class ExecuteSection extends ComponentBase<ExecuteSectionProps, E
     private handleExcecuteButtonClicked = async () => {
         const { webUrl, token, onStatusChanged } = this.props;
         try {
-            await this.setToState({ errorMessage: undefined });
+            await this.setToState({ err: undefined });
 
             // 親コンポーネントに処理開始を通知
             if (onStatusChanged) await onStatusChanged("processing");
@@ -111,7 +112,7 @@ export default class ExecuteSection extends ComponentBase<ExecuteSectionProps, E
             // 親コンポーネントに処理終了を通知
             if (onStatusChanged) await onStatusChanged("completed");
         } catch (ex) {
-            await this.setToState({ errorMessage: ex });
+            await this.setToState({ err: ex });
 
             // 親コンポーネントに処理終了を通知
             if (onStatusChanged) await onStatusChanged("completed");
@@ -179,7 +180,7 @@ export default class ExecuteSection extends ComponentBase<ExecuteSectionProps, E
                 } catch (ex) {
                     return Promise.reject(ex);
                 }
-            }).catch((ex) => { throw new Error(ex); });
+            }).catch((ex) => { throw ex; });
 
             // 読み取った値を整形
             let batch = sp.web.createBatch();
@@ -296,7 +297,7 @@ export default class ExecuteSection extends ComponentBase<ExecuteSectionProps, E
                     }
                 }
             });
-            await batch.execute().catch((ex) => { throw new Error(ex); });
+            await batch.execute().catch((ex) => { throw ex; });
 
             // 返却
             if (errs.length > 0) {
@@ -367,7 +368,7 @@ export default class ExecuteSection extends ComponentBase<ExecuteSectionProps, E
                     errs.push(ex);
                 }
             });
-            await batch.execute().catch((ex) => { throw new Error(ex); });
+            await batch.execute().catch((ex) => { throw new ex; });
 
             // 返却
             if (errs.length > 0) {
@@ -379,39 +380,10 @@ export default class ExecuteSection extends ComponentBase<ExecuteSectionProps, E
             return Promise.reject(ex);
         }
     }
-
-    /** エラーオブジェクトからメッセージを取得 */
-    private errToString(err: any): string {
-        try {
-            if (err && err.response && err.response._bodyText) {
-                const internalError = JSON.parse(err.response._bodyText);
-                return internalError ?
-                    internalError["odata.error"] ?
-                        internalError["odata.error"].message ?
-                            internalError["odata.error"].message.value ?
-                                internalError["odata.error"].message.value :
-                                JSON.stringify(internalError["odata.error"].message) :
-                            JSON.stringify(internalError["odata.error"]) :
-                        JSON.stringify(internalError) :
-                    JSON.stringify(err);
-            }
-            else {
-                return err ?
-                    err.description ?
-                        err.description :
-                        err.error_description ?
-                            err.error_description :
-                            JSON.stringify(err) :
-                    undefined;
-            }
-        } catch (ex) {
-            return err;
-        }
-    }
     
     /** レンダリング */
     public render() {
-        const { errorMessage } = this.state;
+        const { err } = this.state;
 
         return (
             <Section title="実行">
@@ -420,17 +392,7 @@ export default class ExecuteSection extends ComponentBase<ExecuteSectionProps, E
                     onClick={this.handleExcecuteButtonClicked}
                     disabled={!this.canImport()}
                 />
-                <div className="ex-sp__section-item">
-                    {
-                        errorMessage ?
-                            isArray(errorMessage) ?
-                                errorMessage.map((err, i) => {
-                                    return <div key={`err-${i}`}><Text>{this.errToString(err)}</Text></div>;
-                                }) :
-                                <Text>{this.errToString(errorMessage)}</Text> :
-                            undefined
-                    }
-                </div>
+                <Err err={err} />
             </Section>
         );
     }

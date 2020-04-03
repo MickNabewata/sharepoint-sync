@@ -9,6 +9,7 @@ import { sp, ISearchQueryBuilder } from "@pnp/sp";
 import { Account } from "msal";
 import { stringIsNullOrEmpty } from "@pnp/common";
 import { initPnPJs } from "../../pnp/pnp";
+import { errToString } from "../../util/typeCheck";
 
 /** プロパティ型定義 */
 export interface TargetSectionProps {
@@ -39,9 +40,9 @@ export interface TargetSectionState {
     /** コンポーネントが初期化済か否か */
     isComponentInitialized: boolean;
     /** SharePointサイト選択肢取得エラー */
-    spoSitesErr: string;
+    spoSitesErr: any;
     /** SharePointリスト選択肢取得エラー */
-    spoListsErr: string;
+    spoListsErr: any;
     /** サイトアニメーション実施 */
     animateSite: boolean;
     /** リストアニメーション実施 */
@@ -69,11 +70,15 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
     }
 
     /** SharePointサイトをコンボボックス選択肢の形式ですべて返却 */
-    private getWebs(): Promise<IComboBoxOption[]> {
+    private async getWebs(): Promise<IComboBoxOption[]> {
         const { siteFilter } = this.state;
-        const { domain } = this.props;
+        const { token, domain } = this.props;
 
         try {
+            // pnp初期化
+            initPnPJs(sp, token, `https://${domain}.sharepoint.com`);
+
+            // 検索条件
             const query: ISearchQueryBuilder =
                 SearchQueryBuilder()
                     .text(
@@ -89,58 +94,56 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
                                 )` :
                             "contentclass:STS_Site")
                     .rowLimit(5000);
-            return sp.search(query).then(
-                async (results) => {
-                    let options: IComboBoxOption[] = [];
-                    let page = 1;
-                    let gotoNext = true;
-                    while (gotoNext) {
-                        const result = await results.getPage(page, 100);
-                        page++;
-                        if (result && result.PrimarySearchResults && result.PrimarySearchResults.length > 0) {
-                            result.PrimarySearchResults.forEach((result) => {
-                                const siteName = result.Title;
-                                const siteUrl = result.Path;
-                                options.push({ key: siteUrl, text: `${siteName} (${siteUrl})` });
-                            });
-                        } else {
-                            gotoNext = false;
-                        }
-                    }
-                    options = options.sort((v1, v2) => { return (v1.text < v2.text) ? -1 : 1; });
-                    return Promise.resolve(options);
-                },
-                (err) => {
-                    return Promise.reject(err);
+            
+            // 検索
+            const results = await sp.search(query).catch((ex) => { throw ex; });
+            let options: IComboBoxOption[] = [];
+            let page = 1;
+            let gotoNext = true;
+            while (gotoNext) {
+                const result = await results.getPage(page, 100);
+                page++;
+                if (result && result.PrimarySearchResults && result.PrimarySearchResults.length > 0) {
+                    result.PrimarySearchResults.forEach((result) => {
+                        const siteName = result.Title;
+                        const siteUrl = result.Path;
+                        options.push({ key: siteUrl, text: `${siteName} (${siteUrl})` });
+                    });
+                } else {
+                    gotoNext = false;
                 }
-            );
+            }
+            options = options.sort((v1, v2) => { return (v1.text < v2.text) ? -1 : 1; });
+            return options;
         } catch (ex) {
             return Promise.reject(ex);
         }
     }
 
     /** SharePointリストをコンボボックス選択肢の形式ですべて返却 */
-    private getLists(): Promise<IComboBoxOption[]> {
+    private async getLists(): Promise<IComboBoxOption[]> {
+        const { token } = this.props;
+        const { spoSiteSelected } = this.state;
+
         try {
-            return sp.web.lists.select("Id", "Title", "IsSystemList").orderBy("Title", true).get().then(
-                (lists) => {
+            if (!spoSiteSelected) return [];
 
-                    const options: IComboBoxOption[] = [];
+            // pnp初期化
+            initPnPJs(sp, token, spoSiteSelected.key.toString());
 
-                    lists.forEach((list) => {
-                        if (list.IsSystemList === false) {
-                            const listId = list.Id;
-                            const listTitle = list.Title;
-                            options.push({ key: listId, text: listTitle });
-                        }
-                    });
+            // 検索
+            const lists = await sp.web.lists.select("Id", "Title", "IsSystemList").orderBy("Title", true).get().catch((ex) => { throw ex; });
+            const options: IComboBoxOption[] = [];
 
-                    return Promise.resolve(options);
-                },
-                (err) => {
-                    return Promise.reject(err);
+            lists.forEach((list) => {
+                if (list.IsSystemList === false) {
+                    const listId = list.Id;
+                    const listTitle = list.Title;
+                    options.push({ key: listId, text: listTitle });
                 }
-            );
+            });
+
+            return options;
         } catch (ex) {
             return Promise.reject(ex);
         }
@@ -149,7 +152,6 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
     /** SharePointサイトとリストをコンボボックス選択肢の形式でステートにセット */
     private getWebsAndListsToState(): Promise<void> {
         let { spoSiteSelected, spoListSelected } = this.state;
-        const { token } = this.props;
 
         return this.setToState({ isComponentInitialized: false }).then(
             () => {
@@ -158,9 +160,6 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
                         if (spoSiteSelected) {
                              // 選択中のサイトをキーで再検索
                             spoSiteSelected = webs.find((v) => { return v.key === spoSiteSelected.key; });
-
-                            // PnP.jsを再初期化
-                            initPnPJs(sp, token, spoSiteSelected.key.toString());
 
                             // サイトが変わったらリストも取り直す
                             return this.getLists().then(
@@ -171,8 +170,8 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
                                     }
 
                                     // ステートにセット
-                                    const siteErr = (webs && webs.length > 0) ? "" : "SharePointサイトがありません。";
-                                    const listErr = (lists && lists.length > 0) ? "" : (spoSiteSelected) ? "SharePointリストがありません。" : "";
+                                    const siteErr = (webs && webs.length > 0) ? "" : new Error("SharePointサイトがありません。");
+                                    const listErr = (lists && lists.length > 0) ? "" : (spoSiteSelected) ? new Error("SharePointリストがありません。") : "";
                                     return this.setToState({ spoSites: webs, spoLists: lists, spoSiteSelected: spoSiteSelected, spoListSelected: spoListSelected, isComponentInitialized: true, spoSitesErr: siteErr, spoListsErr: listErr });
                                 },
                                 (err) => {
@@ -211,7 +210,7 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
                         }
                         
                         // ステートにセット
-                        const err = (spoSiteSelected && lists && lists.length > 0) ? "" : (spoSiteSelected) ? "SharePointリストがありません。" : "";
+                        const err = (spoSiteSelected && lists && lists.length > 0) ? "" : (spoSiteSelected) ? new Error("SharePointリストがありません。") : "";
                         return this.setToState({ spoLists: lists, spoListSelected: spoListSelected, isComponentInitialized: true, spoListsErr: err });
                     },
                     (err) => {
@@ -262,18 +261,15 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
     /** SharePointサイトの選択イベント */
     private handleSiteChanged = (event: React.FormEvent<IComboBox>, option?: IComboBoxOption, index?: number, value?: string) => {
         const { spoSites } = this.state;
-        const { token, onChange } = this.props;
+        const { onChange } = this.props;
 
         console.log(event);
         console.log(option);
         console.log(index);
         console.log(value);
 
-        // sp.jsを再度初期化
-        const newSiteUrl = option.key.toString();
-        initPnPJs(sp, token, newSiteUrl);
-
         // 選択肢から１件特定してステートにセット
+        const newSiteUrl = option.key.toString();
         const selected = spoSites.find((v) => { return v.key === newSiteUrl; });
         this.setToState({ spoSiteSelected: selected }).then(
             () => {
@@ -356,35 +352,6 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
         this.getWebsAndListsToState();
     }
 
-    /** エラーオブジェクトからメッセージを取得 */
-    private errToString(err: any): string {
-        try {
-            if (err && err.response && err.response._bodyText) {
-                const internalError = JSON.parse(err.response._bodyText);
-                return internalError ?
-                    internalError["odata.error"] ?
-                        internalError["odata.error"].message ?
-                            internalError["odata.error"].message.value ?
-                                internalError["odata.error"].message.value :
-                                JSON.stringify(internalError["odata.error"].message) :
-                            JSON.stringify(internalError["odata.error"]) :
-                        JSON.stringify(internalError) :
-                    JSON.stringify(err);
-            }
-            else {
-                return err ?
-                    err.description ?
-                        err.description :
-                        err.error_description ?
-                            err.error_description :
-                            JSON.stringify(err) :
-                    undefined;
-            }
-        } catch (ex) {
-            return err;
-        }
-    }
-
     /** レンダリング */
     public render() {
         const { account } = this.props;
@@ -405,7 +372,7 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
                 <FullWidthComboBox
                     placeholder="SharePointサイトを選択します"
                     options={spoSites}
-                    errorMessage={(spoSitesErr) ? this.errToString(spoSitesErr) : ""}
+                    errorMessage={(spoSitesErr) ? errToString(spoSitesErr) : ""}
                     disabled={!(spoSites && spoSites.length > 0) || !isComponentInitialized}
                     selectedKey={(spoSiteSelected) ? spoSiteSelected.key : undefined}
                     onChange={this.handleSiteChanged}
@@ -414,7 +381,7 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
                 <FullWidthComboBox
                     placeholder="SharePointリストを選択します"
                     options={spoLists}
-                    errorMessage={(spoListsErr) ? this.errToString(spoListsErr) : ""}
+                    errorMessage={(spoListsErr) ? errToString(spoListsErr) : ""}
                     disabled={spoSiteSelected === undefined || !(spoLists && spoLists.length > 0) || !isComponentInitialized}
                     selectedKey={(spoListSelected) ? spoListSelected.key : undefined}
                     onChange={this.handleListChanged}
