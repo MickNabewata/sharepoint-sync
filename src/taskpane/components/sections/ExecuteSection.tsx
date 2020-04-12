@@ -131,23 +131,16 @@ export default class ExecuteSection extends ComponentBase<ExecuteSectionProps, E
             const filter = requestFields.join(" or ");
 
             // SharePointへの問合せ
-            await sp.web.lists.getById(listId).fields.select("InternalName", "Title", "TypeAsString").filter(filter).get().then(
-                async (fields) => {
-                    if (fields) {
-                        fields.forEach((field: SpoField) => {
-                            results.push({
-                                InternalName: field.InternalName,
-                                Title: field.Title,
-                                TypeAsString: field.TypeAsString
-                            });
-                        });
-                        return Promise.resolve();
-                    }
-                },
-                async (err) => {
-                    return Promise.reject(err);
-                }
-            );
+            const fields = await sp.web.lists.getById(listId).fields.select("InternalName", "Title", "TypeAsString").filter(filter).get().catch((ex) => { throw ex; });
+            if (fields) {
+                fields.forEach((field: SpoField) => {
+                    results.push({
+                        InternalName: field.InternalName,
+                        Title: field.Title,
+                        TypeAsString: field.TypeAsString
+                    });
+                });
+            }
 
             // 返却
             return results;

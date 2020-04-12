@@ -79,26 +79,16 @@ export default class SourceSection extends ComponentBase<SourceSectionProps, Sou
     }
 
     /** ファイル内のExcelテーブルをコンボボックス選択肢の形式でステートにセット */
-    private getTablesToState(): Promise<void> {
-        return this.setToState({ isComponentInitialized: false }).then(
-            () => {
-                return this.getTables().then(
-                    (tables) => {
-                        // ステートにセット
-                        const excelTablesErr = (tables && tables.length > 0) ? "" : "Excelテーブルがありません。";
-                        return this.setToState({ excelTables: tables, isComponentInitialized: true, excelTablesErr: excelTablesErr });
-                    },
-                    (err) => {
-                        // ステートにセット
-                        return this.setToState({ isComponentInitialized: true, excelTablesErr: err });
-                    }
-                );
-            },
-            (err) => {
-                // ステートにセット
-                return this.setToState({ isComponentInitialized: true, excelTablesErr: err });
-            }
-        );
+    private async getTablesToState(): Promise<void> {
+        try {
+            await this.setToState({ isComponentInitialized: false });
+            const tables = await this.getTables().catch((ex) => { throw ex; });
+    
+            const excelTablesErr = (tables && tables.length > 0) ? "" : "Excelテーブルがありません。";
+            await this.setToState({ excelTables: tables, isComponentInitialized: true, excelTablesErr: excelTablesErr });
+        } catch(ex) {
+            await this.setToState({ isComponentInitialized: true, excelTablesErr: ex });
+        }
     }
 
     /** アニメーション実行 */

@@ -72,19 +72,27 @@ export default class SharePointSync extends ComponentBase<ExcelImporterProps, Ex
 
     /** インポート対象変更イベント */
     private handleSourceChanged = async (value: Excel.Table) => {
-        const fields = await this.getExcelFields(value.name);
-        await this.setToState({ selectedSource: value, selectedSourceFields: fields });
-        await this.setToState({ maps: this.createMapping() });
+        try {
+            const fields = await this.getExcelFields(value.name).catch((ex) => { throw ex; });
+            await this.setToState({ selectedSource: value, selectedSourceFields: fields });
+            await this.setToState({ maps: this.createMapping() });
+        } catch(ex) {
+            this.setToState({ err: ex });
+        }
     }
 
     /** インポート先変更イベント */
     private handleTargetChanged = async (webUrl: string, listId: string) => {
-        const { token } = this.state;
-        await this.setToState({ selectedWebUrl: webUrl, selectedTarget: listId });
-        initPnPJs(sp, token, webUrl);
-        const fields = await this.getSpoFields(listId);
-        await this.setToState({ selectedTargetFields: fields });
-        await this.setToState({ maps: this.createMapping() });
+        try {
+            const { token } = this.state;
+            await this.setToState({ selectedWebUrl: webUrl, selectedTarget: listId });
+            initPnPJs(sp, token, webUrl);
+            const fields = await this.getSpoFields(listId).catch((ex) => { throw ex;  });
+            await this.setToState({ selectedTargetFields: fields });
+            await this.setToState({ maps: this.createMapping() });
+        } catch(ex) {
+            this.setToState({ err: ex });
+        }
     }
 
     /** マッピング変更イベント */
@@ -145,25 +153,23 @@ export default class SharePointSync extends ComponentBase<ExcelImporterProps, Ex
 
     /** SharePointリストフィールド一覧を取得 */
     private async getSpoFields(listId: string): Promise<IComboBoxOption[]> {
-        let options: IComboBoxOption[] = [];
+        try {
+            let options: IComboBoxOption[] = [];
 
-        if (stringIsNullOrEmpty(listId)) return options;
-
-        await sp.web.lists.getById(listId).fields.select("InternalName", "Title").filter("Sealed eq false").orderBy("Title", true).get().then(
-            (fields) => {
-                fields.forEach((field) => {
-                    options.push({
-                        key: field.InternalName,
-                        text: `${field.Title} (${field.InternalName})`
-                    });
+            if (stringIsNullOrEmpty(listId)) return options;
+    
+            const fields = await sp.web.lists.getById(listId).fields.select("InternalName", "Title").filter("Sealed eq false").orderBy("Title", true).get().catch((ex) => { throw ex; });
+            fields.forEach((field) => {
+                options.push({
+                    key: field.InternalName,
+                    text: `${field.Title} (${field.InternalName})`
                 });
-                return Promise.resolve();
-            },
-            (err) => {
-                return this.setToState({ err: err });
-            }
-        );
-        return options;
+            });
+            
+            return options;
+        } catch(ex) {
+            return Promise.reject(ex);
+        }
     }
 
     /** 認証成功イベント */
@@ -172,10 +178,9 @@ export default class SharePointSync extends ComponentBase<ExcelImporterProps, Ex
     }
 
     /** サインアウト */
-    private handleSignOut = () => {
-        this.setToState({ isAuthorized: false }).then(() => {
-            msalInstance.logout();
-        });
+    private handleSignOut = async () => {
+        await this.setToState({ isAuthorized: false });
+        msalInstance.logout();
     }
 
     /** レンダリング */

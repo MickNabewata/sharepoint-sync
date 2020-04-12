@@ -1,6 +1,6 @@
 import * as React from "react";
 import ComponentBase from "../bases/ComponentBase";
-import { IComboBoxOption, IComboBox, Text } from "office-ui-fabric-react";
+import { IComboBoxOption, IComboBox } from "office-ui-fabric-react";
 import Section from "../parts/Section";
 import FullWidthComboBox from "../parts/FullWidthComboBox";
 import Err from "../parts/Error";
