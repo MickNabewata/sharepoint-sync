@@ -105,7 +105,7 @@ export default class MsalRedirect extends ComponentBase<MsalRedirectProps, MsalR
   }
 
   /** コンポーネントがマウントされた後のイベント */
-  public componentDidMount(): void {
+  public async componentDidMount(): Promise<void> {
     // URLハッシュにアクセストークンが含まれている（コールバック時）場合はここで終了
     if (msalInstance.isCallback(window.location.hash) === false) {
       // ログイン処理
@@ -115,45 +115,30 @@ export default class MsalRedirect extends ComponentBase<MsalRedirectProps, MsalR
         msalInstance.loginRedirect({});
       } else {
         // 認証済
-        this.setToState({ authenticated: true }).then(() => {
+        await this.setToState({ authenticated: true });
 
-          // PnPを初期化し、一度問合せをしてアクセストークンを得る
-          this.initPnPjs();
-          try {
-            sp.web.get().then(
-              () => {
-                const message: DialogMessage = {
-                  message: "Success",
-                  account: account,
-                  token: pnpFetchClient.token
-                };
-                // ダイアログを閉じる
-                Office.context.ui.messageParent(JSON.stringify(message));
-              },
-              (err) => {
-                console.log(err);
+        // PnPを初期化し、一度問合せをしてアクセストークンを得る
+        this.initPnPjs();
+        try {
+          await sp.web.get().catch((ex) => { throw ex; });
+          const message: DialogMessage = {
+            message: "Success",
+            account: account,
+            token: pnpFetchClient.token
+          };
+          // ダイアログを閉じる
+          Office.context.ui.messageParent(JSON.stringify(message));
+        } catch(ex) {
+          console.log(ex);
 
-                // ダイアログを閉じる
-                const message: DialogMessage = {
-                  message: "login failed. please check your domain and account.",
-                  account: account,
-                  token: pnpFetchClient.token
-                };
-                Office.context.ui.messageParent(JSON.stringify(message));
-              }
-            );
-          } catch (ex) {
-            console.log(ex);
-
-            // ダイアログを閉じる
-            const message: DialogMessage = {
-              message: "login failed. please check your domain and account.",
-              account: account,
-              token: pnpFetchClient.token
-            };
-            Office.context.ui.messageParent(JSON.stringify(message));
-          }
-        });
+          // ダイアログを閉じる
+          const message: DialogMessage = {
+            message: "login failed. please check your domain and account.",
+            account: account,
+            token: pnpFetchClient.token
+          };
+          Office.context.ui.messageParent(JSON.stringify(message));
+        }
       }
     }
   }

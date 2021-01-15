@@ -59,19 +59,11 @@ export default class SourceSection extends ComponentBase<SourceSectionProps, Sou
     private getTables(): Promise<IComboBoxOption[]> {
         try {
             // Excelファイル操作開始
-            return Excel.run(context => {
+            return Excel.run(async context => {
                 // Excelテーブル一覧の読取
                 const tables = context.workbook.tables.load();
-                return context.sync().then(
-                    () => {
-                        const options: IComboBoxOption[] = this.toComboBoxOptions(tables);
-
-                        return Promise.resolve(options);
-                    },
-                    (err) => {
-                        return Promise.reject(err);
-                    }
-                );
+                await context.sync().catch((ex) => { throw ex; });
+                return this.toComboBoxOptions(tables);
             });
         } catch (ex) {
             return Promise.reject(ex);
@@ -93,122 +85,68 @@ export default class SourceSection extends ComponentBase<SourceSectionProps, Sou
 
     /** アニメーション実行 */
     private animate(): Promise<void> {
-        return new Promise<void>((resolve: () => void) => {
-            this.setToState({ animate: true }).then(() => {
-                setTimeout(() => {
-                    this.setToState({ animate: false }).then(
-                        () => {
-                            resolve();
-                        }
-                    );
-                }, 500);
-            });
+        return new Promise<void>(async (resolve: () => void) => {
+            await this.setToState({ animate: true });
+            setTimeout(async () => {
+                await this.setToState({ animate: false });
+                resolve();
+            }, 500);
         });
     }
 
     /** Excelテーブルの選択イベント */
-    private handleExcelTableChanged = (event: React.FormEvent<IComboBox>, option?: IComboBoxOption, index?: number, value?: string) => {
-        const { onChange } = this.props;
+    private handleExcelTableChanged = async (event: React.FormEvent<IComboBox>, option?: IComboBoxOption, index?: number, value?: string) => {
+        try {
+            const { onChange } = this.props;
 
-        console.log(event);
-        console.log(option);
-        console.log(index);
-        console.log(value);
-
-        // 処理中フラグ
-        this.setToState({ isComponentInitialized: false }).then(
-            () => {
-                // テーブル名をキーに１件特定
-                Excel.run(context => {
-                    const table = context.workbook.tables.getItem(option.key.toString()).load();
-                    return context.sync(table).then(
-                        (table) => {
-                            table.getRange().select();
-                            return context.sync().then(
-                                () => {
-                                    return this.setToState({ excelTableSelected: table, isComponentInitialized: true }).then(
-                                        () => {
-                                            return Promise.resolve();
-                                        }
-                                    );
-                                },
-                                (err) => {
-                                    return this.setToState({ excelTableSelected: undefined, isComponentInitialized: true, excelTablesErr: err });
-                                }
-                            );
-                        },
-                        (err) => {
-                            return this.setToState({ excelTableSelected: undefined, isComponentInitialized: true, excelTablesErr: err });
-                        }
-                    );
-                }).then(
-                    () => {
-                        onChange(this.state.excelTableSelected);
-                    },
-                    () => {
-                        onChange(this.state.excelTableSelected);
-                    }
-                );
-            }
-        );
+            console.log(event);
+            console.log(option);
+            console.log(index);
+            console.log(value);
+    
+            // 処理中フラグ
+            await this.setToState({ isComponentInitialized: false }); 
+    
+            // テーブル名をキーに１件特定
+            await Excel.run(async context => {
+                const tableRequest = context.workbook.tables.getItem(option.key.toString()).load();
+                const table = await context.sync(tableRequest);
+                table.getRange().select();
+                await context.sync();
+                await this.setToState({ excelTableSelected: table, isComponentInitialized: true });
+            });
+    
+            onChange(this.state.excelTableSelected);
+        } catch(ex) {
+            await this.setToState({ excelTableSelected: undefined, isComponentInitialized: true, excelTablesErr: ex });
+        }
     }
 
     /** 再読込ボタンクリックイベント */
-    private handleRefreshButtonClicked = () => {
-        const { excelTableSelected } = this.state;
-        const { onChange } = this.props;
-
-        this.getTablesToState().then(
-            () => {
-                new Promise<void>((resolve: () => void, reject: (err) => void) => {
-                    if (excelTableSelected) {
-                        const newOption = this.state.excelTables.filter((v) => { return v.key === excelTableSelected.name });
-                        if (newOption && newOption.length > 0) {
-                            Excel.run(context => {
-                                const table = context.workbook.tables.getItem(newOption[0].key.toString()).load();
-                                return context.sync().then(
-                                    () => {
-                                        this.setToState({ excelTableSelected: table }).then(
-                                            () => {
-                                                resolve();
-                                            },
-                                            (err) => {
-                                                reject(err);
-                                            }
-                                        );
-                                    },
-                                    (err) => {
-                                        this.setToState({ excelTableSelected: undefined, excelTablesErr: err }).then(
-                                            () => {
-                                                reject(err);
-                                            },
-                                            () => {
-                                                reject(err);
-                                            }
-                                        );
-                                    }
-                                );
-                            });
-                        } else {
-                            this.setToState({ excelTableSelected: undefined }).then(
-                                () => { resolve(); }
-                            );
-                        }
-                    } else {
-                        resolve();
-                    }
-                }).then(
-                    () => {
-                        this.animate();
-                        onChange(this.state.excelTableSelected);
-                    },
-                    () => {
-                        this.animate();
-                        onChange(this.state.excelTableSelected);
-                    }
-                );
+    private handleRefreshButtonClicked = async () => {
+        try {
+            const { excelTableSelected } = this.state;
+            const { onChange } = this.props;
+    
+            await this.getTablesToState().catch((ex) => { throw ex; });
+            if (excelTableSelected) {
+                const newOption = this.state.excelTables.filter((v) => { return v.key === excelTableSelected.name });
+                if (newOption && newOption.length > 0) {
+                    await Excel.run(async context => {
+                        const table = context.workbook.tables.getItem(newOption[0].key.toString()).load();
+                        await context.sync().catch((ex) => { throw ex; });
+                        await this.setToState({ excelTableSelected: table }).catch((ex) => { throw ex; });
+                    }).catch((ex) => { throw ex; });
+                } else {
+                    await this.setToState({ excelTableSelected: undefined });
+                }
             }
-        );
+
+            await this.animate().catch((ex) => { throw ex; });
+            onChange(this.state.excelTableSelected);
+        } catch(ex) {
+            this.setToState({ excelTableSelected: undefined, excelTablesErr: ex });
+        }
     }
 
     /** レンダリング */

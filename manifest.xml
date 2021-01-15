@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
-  <Id>b23f4714-780b-4593-a834-9fd1cf245b6e</Id>
+  <Id>b8909eb5-3f8d-4afd-a609-e943d247591c</Id>
   <Version>1.0.0.0</Version>
   <ProviderName>MickNabewata</ProviderName>
   <DefaultLocale>ja</DefaultLocale>

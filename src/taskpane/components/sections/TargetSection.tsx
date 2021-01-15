@@ -83,7 +83,7 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
                 SearchQueryBuilder()
                     .text(
                         !stringIsNullOrEmpty(siteFilter) ?
-                            `contentclass:STS_Site AND 
+                            `(contentclass:STS_Site OR contentclass:STS_Web) AND 
                                 (
                                     Title:${siteFilter}* OR 
                                     Path:https://${domain}.sharepoint.com/sites/${siteFilter} OR
@@ -92,7 +92,7 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
                                     Path:https://${domain}.sharepoint.com${siteFilter} OR
                                     Path:${siteFilter}
                                 )` :
-                            "contentclass:STS_Site")
+                            "(contentclass:STS_Site OR contentclass:STS_Web)")
                     .rowLimit(5000);
             
             // 検索
@@ -150,92 +150,64 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
     }
 
     /** SharePointサイトとリストをコンボボックス選択肢の形式でステートにセット */
-    private getWebsAndListsToState(): Promise<void> {
-        let { spoSiteSelected, spoListSelected } = this.state;
+    private async getWebsAndListsToState(): Promise<void> {
+        let { spoSiteSelected, spoListSelected, spoLists } = this.state;
+        let webs: IComboBoxOption[] = [];
+        
+        try {
+            await this.setToState({ isComponentInitialized: false });
+            webs = await this.getWebs().catch((ex) => { throw ex; });
+            
+            // 選択中のサイトをキーで再検索
+            if(spoSiteSelected) {
+                spoSiteSelected = webs.find((v) => { return v.key === spoSiteSelected.key; });
 
-        return this.setToState({ isComponentInitialized: false }).then(
-            () => {
-                return this.getWebs().then(
-                    (webs) => {
-                        if (spoSiteSelected) {
-                             // 選択中のサイトをキーで再検索
-                            spoSiteSelected = webs.find((v) => { return v.key === spoSiteSelected.key; });
+                // サイトが変わったらリストも取り直す
+                spoLists = await this.getLists().catch((ex) => { throw ex; });
 
-                            // サイトが変わったらリストも取り直す
-                            return this.getLists().then(
-                                (lists) => {
-                                    // 選択中のリストをキーで再検索
-                                    if (spoListSelected) {
-                                        spoListSelected = lists.find((v) => { return v.key === spoListSelected.key; });
-                                    }
-
-                                    // ステートにセット
-                                    const siteErr = (webs && webs.length > 0) ? "" : new Error("SharePointサイトがありません。");
-                                    const listErr = (lists && lists.length > 0) ? "" : (spoSiteSelected) ? new Error("SharePointリストがありません。") : "";
-                                    return this.setToState({ spoSites: webs, spoLists: lists, spoSiteSelected: spoSiteSelected, spoListSelected: spoListSelected, isComponentInitialized: true, spoSitesErr: siteErr, spoListsErr: listErr });
-                                },
-                                (err) => {
-                                    // ステートにセット
-                                    return this.setToState({ spoSites: webs, spoLists: [], spoSiteSelected: spoListSelected, spoListSelected: undefined, isComponentInitialized: true, spoSitesErr: "", spoListsErr: err });
-                                }
-                            );
-                        } else {
-                            // ステートにセット
-                            return this.setToState({ spoSites: webs, spoLists: [], spoSiteSelected: undefined, spoListSelected: undefined, isComponentInitialized: true, spoSitesErr: "", spoListsErr: "" });
-                        }
-                    },
-                    (err) => {
-                        // ステートにセット
-                        return this.setToState({ spoSites: [], spoLists: [], spoSiteSelected: undefined, spoListSelected: undefined, isComponentInitialized: true, spoSitesErr: err, spoListsErr: "" });
-                    }
-                );
-            },
-            (err) => {
-                // ステートにセット
-                return this.setToState({ spoSites: [], spoLists: [], spoSiteSelected: undefined, spoListSelected: undefined, isComponentInitialized: true, spoSitesErr: err, spoListsErr: "" });
+                // 選択中のリストをキーで再検索
+                if (spoListSelected) {
+                    spoListSelected = spoLists.find((v) => { return v.key === spoListSelected.key; });
+                }
             }
-        );
+
+            // ステートにセット
+            const siteErr = (webs && webs.length > 0) ? "" : new Error("SharePointサイトがありません。");
+            const listErr = (spoLists && spoLists.length > 0) ? "" : (spoSiteSelected) ? new Error("SharePointリストがありません。") : "";
+            await this.setToState({ spoSites: webs, spoLists: spoLists, spoSiteSelected: spoSiteSelected, spoListSelected: spoListSelected, isComponentInitialized: true, spoSitesErr: siteErr, spoListsErr: listErr });
+        } catch(ex) {
+            await this.setToState({ spoSites: webs, spoLists: [], spoSiteSelected: spoListSelected, spoListSelected: undefined, isComponentInitialized: true, spoSitesErr: "", spoListsErr: ex });
+        }
     }
 
     /** SharePointリストをコンボボックス選択肢の形式でステートにセット */
-    private getListsToState(): Promise<void> {
+    private async getListsToState(): Promise<void> {
         let { spoSiteSelected, spoListSelected } = this.state;
-        return this.setToState({ isComponentInitialized: false }).then(
-            () => {
-                return this.getLists().then(
-                    (lists) => {
-                        // 選択中のリストをキーで再検索
-                        if (spoListSelected) {
-                            spoListSelected = lists.find((v) => { return v.key === spoListSelected.key; });
-                        }
-                        
-                        // ステートにセット
-                        const err = (spoSiteSelected && lists && lists.length > 0) ? "" : (spoSiteSelected) ? new Error("SharePointリストがありません。") : "";
-                        return this.setToState({ spoLists: lists, spoListSelected: spoListSelected, isComponentInitialized: true, spoListsErr: err });
-                    },
-                    (err) => {
-                        // ステートにセット
-                        return this.setToState({ spoLists: [], spoListSelected: undefined, isComponentInitialized: true, spoListsErr: err });
-                    }
-                );
-            },
-            (err) => {
-                // ステートにセット
-                return this.setToState({ spoLists: [], spoListSelected: undefined, isComponentInitialized: true, spoListsErr: err });
+
+        try {
+            const lists = await this.getLists();
+
+            // 選択中のリストをキーで再検索
+            if (spoListSelected) {
+                spoListSelected = lists.find((v) => { return v.key === spoListSelected.key; });
             }
-        );
+            
+            // ステートにセット
+            const err = (spoSiteSelected && lists && lists.length > 0) ? "" : (spoSiteSelected) ? new Error("SharePointリストがありません。") : "";
+            await this.setToState({ spoLists: lists, spoListSelected: spoListSelected, isComponentInitialized: true, spoListsErr: err });
+        } catch(ex) {
+            await this.setToState({ spoLists: [], spoListSelected: undefined, isComponentInitialized: true, spoListsErr: ex });
+        }
     }
 
     /** アニメーション実行 */
     private animate(target: "site" | "list" | "both"): Promise<void> {
-        return new Promise<void>((resolve: () => void) => {
-            this.setToState(this.createAnimateState(target, true)).then(() => {
-              setTimeout(() => {
-                this.setToState(this.createAnimateState(target, false)).then(() => {
-                  resolve();
-                });
+        return new Promise<void>(async (resolve: () => void) => {
+            await this.setToState(this.createAnimateState(target, true));
+            setTimeout(async () => {
+                await this.setToState(this.createAnimateState(target, false));
+                resolve();
               }, 500);
-            });
         });
     }
 
@@ -259,7 +231,7 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
     }
 
     /** SharePointサイトの選択イベント */
-    private handleSiteChanged = (event: React.FormEvent<IComboBox>, option?: IComboBoxOption, index?: number, value?: string) => {
+    private handleSiteChanged = async (event: React.FormEvent<IComboBox>, option?: IComboBoxOption, index?: number, value?: string) => {
         const { spoSites } = this.state;
         const { onChange } = this.props;
 
@@ -271,27 +243,17 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
         // 選択肢から１件特定してステートにセット
         const newSiteUrl = option.key.toString();
         const selected = spoSites.find((v) => { return v.key === newSiteUrl; });
-        this.setToState({ spoSiteSelected: selected }).then(
-            () => {
-                // リストの選択肢を再取得
-                this.getListsToState().then(
-                    () => {
-                        const listId = this.state.spoListSelected ? this.state.spoListSelected.key.toString() : undefined;
-                        this.animate("list");
-                        onChange(newSiteUrl, listId);
-                    },
-                    () => {
-                        const listId = this.state.spoListSelected ? this.state.spoListSelected.key.toString() : undefined;
-                        this.animate("list");
-                        onChange(newSiteUrl, listId);
-                    }
-                );
-            }
-        );
+        await this.setToState({ spoSiteSelected: selected });
+
+        // リストの選択肢を再取得
+        await this.getListsToState();
+        const listId = this.state.spoListSelected ? this.state.spoListSelected.key.toString() : undefined;
+        await this.animate("list");
+        onChange(newSiteUrl, listId);
     }
 
     /** SharePointリストの選択イベント */
-    private handleListChanged = (event: React.FormEvent<IComboBox>, option?: IComboBoxOption, index?: number, value?: string) => {
+    private handleListChanged = async (event: React.FormEvent<IComboBox>, option?: IComboBoxOption, index?: number, value?: string) => {
         const { spoSiteSelected, spoLists } = this.state;
         const { onChange } = this.props;
 
@@ -304,37 +266,24 @@ export default class TargetSection extends ComponentBase<TargetSectionProps, Tar
         const webUrl = spoSiteSelected ? spoSiteSelected.key.toString() : undefined;
         const listId = option ? option.key.toString() : undefined;
         const selected = spoLists.find((v) => { return v.key === listId; });
-        this.setToState({ spoListSelected: selected }).then(
-            () => {
-                onChange(webUrl, listId);
-            }
-        );
+        await this.setToState({ spoListSelected: selected });
+        onChange(webUrl, listId);
     }
 
     /** 再読込ボタンクリックイベント */
-    private handleRefreshButtonClicked = () => {
+    private handleRefreshButtonClicked = async () => {
         
         const { onChange } = this.props;
 
         // SharePointサイトとリストを再取得
-        this.getWebsAndListsToState().then(
-            () => {
-                // 変更を通知
-                const { spoSiteSelected, spoListSelected } = this.state;
-                const webUrl = spoSiteSelected ? spoSiteSelected.key.toString() : undefined;
-                const listId = spoListSelected ? spoListSelected.key.toString() : undefined;
-                this.animate("both");
-                onChange(webUrl, listId);
-            },
-            () => {
-                // 変更を通知
-                const { spoSiteSelected, spoListSelected } = this.state;
-                const webUrl = spoSiteSelected ? spoSiteSelected.key.toString() : undefined;
-                const listId = spoListSelected ? spoListSelected.key.toString() : undefined;
-                this.animate("both");
-                onChange(webUrl, listId);
-            }
-        );
+        await this.getWebsAndListsToState();
+        
+        // 変更を通知
+        const { spoSiteSelected, spoListSelected } = this.state;
+        const webUrl = spoSiteSelected ? spoSiteSelected.key.toString() : undefined;
+        const listId = spoListSelected ? spoListSelected.key.toString() : undefined;
+        this.animate("both");
+        onChange(webUrl, listId);
     }
 
     /** サインアウトボタンクリックイベント */
